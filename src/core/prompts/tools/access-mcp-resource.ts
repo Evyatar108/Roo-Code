@@ -1,32 +1,5 @@
 import { ToolArgs } from "./types"
-import { getModeBySlug } from "../../../shared/modes"
-
-// Helper function for MCP server restriction checking
-function isServerAllowedForMode(
-	serverName: string,
-	restrictions: any,
-	serverDefaultEnabled?: boolean, // NEW: Server's defaultEnabled setting
-): boolean {
-	// NEW: Handle defaultEnabled logic first
-	// If server has defaultEnabled: false, it must be explicitly allowed
-	if (serverDefaultEnabled === false) {
-		// Only allowed if explicitly in allowedServers list
-		return restrictions.allowedServers ? restrictions.allowedServers.includes(serverName) : false
-	}
-
-	// EXISTING LOGIC: For defaultEnabled: true (default behavior)
-	// If allowedServers is defined, server must be in the list
-	if (restrictions.allowedServers && !restrictions.allowedServers.includes(serverName)) {
-		return false
-	}
-
-	// If disallowedServers is defined, server must not be in the list
-	if (restrictions.disallowedServers && restrictions.disallowedServers.includes(serverName)) {
-		return false
-	}
-
-	return true
-}
+import { getModeBySlug, isServerAllowedForMode } from "../../../shared/modes"
 
 export function getAccessMcpResourceDescription(args: ToolArgs): string | undefined {
 	if (!args.mcpHub) {

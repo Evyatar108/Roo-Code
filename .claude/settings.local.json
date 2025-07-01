@@ -1,15 +1,16 @@
 {
-	"permissions": {
-		"allow": [
-			"Bash(grep:*)",
-			"Bash(pnpm check-types:*)",
-			"Bash(npm run check-types:*)",
-			"Bash(npx tsc:*)",
-			"Bash(ls:*)",
-			"Bash(npm run build:*)",
-			"Bash(rm:*)",
-			"Bash(pnpm tsc:*)"
-		],
-		"deny": []
-	}
+  "permissions": {
+    "allow": [
+      "Bash(grep:*)",
+      "Bash(pnpm check-types:*)",
+      "Bash(npm run check-types:*)",
+      "Bash(npx tsc:*)",
+      "Bash(ls:*)",
+      "Bash(npm run build:*)",
+      "Bash(rm:*)",
+      "Bash(pnpm tsc:*)",
+      "Bash(rg:*)"
+    ],
+    "deny": []
+  }
 }

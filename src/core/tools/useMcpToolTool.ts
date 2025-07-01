@@ -5,6 +5,7 @@ import { ClineAskUseMcpServer } from "../../shared/ExtensionMessage"
 import { McpExecutionStatus } from "@roo-code/types"
 import { t } from "../../i18n"
 import { validateToolUse } from "./validateToolUse"
+import { defaultModeSlug } from "../../shared/modes"
 
 interface McpToolParams {
 	server_name?: string
@@ -197,15 +198,14 @@ export async function useMcpToolTool(
 		// NEW: Validate against mode restrictions before execution
 		try {
 			const provider = await cline.providerRef.deref()
-			const currentMode = (await provider?.getState())?.mode ?? "code" // fallback to code mode
-			const customModes = (await provider?.context.globalState.get("customModes")) ?? []
+			const { mode: currentMode, customModes } = (await provider?.getState()) ?? {}
 
 			// Get server configuration to check defaultEnabled setting
 			const mcpHub = provider?.getMcpHub()
 			const serverConfig = mcpHub?.getServerConfig(serverName)
 			const serverDefaultEnabled = serverConfig?.defaultEnabled ?? true // Default to true if not specified
 
-			validateToolUse("use_mcp_tool", currentMode, customModes, undefined, undefined, {
+			validateToolUse("use_mcp_tool", currentMode ?? defaultModeSlug, customModes ?? [], undefined, undefined, {
 				serverName,
 				toolName,
 				serverDefaultEnabled,

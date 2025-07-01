@@ -3,6 +3,7 @@ import { ToolUse, RemoveClosingTag, AskApproval, HandleError, PushToolResult } f
 import { Task } from "../task/Task"
 import { formatResponse } from "../prompts/responses"
 import { validateToolUse } from "./validateToolUse"
+import { defaultModeSlug } from "../../shared/modes"
 
 export async function accessMcpResourceTool(
 	cline: Task,
@@ -43,8 +44,7 @@ export async function accessMcpResourceTool(
 			// NEW: Validate against mode restrictions before execution
 			try {
 				const provider = await cline.providerRef.deref()
-				const currentMode = (await provider?.getState())?.mode ?? "code" // fallback to code mode
-				const customModes = (await provider?.context.globalState.get("customModes")) ?? []
+				const { mode: currentMode, customModes } = (await provider?.getState()) ?? {}
 
 				// Get server configuration to check defaultEnabled setting
 				const mcpHub = provider?.getMcpHub()
@@ -53,8 +53,8 @@ export async function accessMcpResourceTool(
 
 				validateToolUse(
 					"access_mcp_resource",
-					currentMode,
-					customModes,
+					currentMode ?? defaultModeSlug, // Use proper fallback
+					customModes ?? [],
 					undefined,
 					undefined,
 					{ serverName: server_name, toolName: undefined, serverDefaultEnabled }, // No specific tool for resource access
