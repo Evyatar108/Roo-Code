@@ -8,6 +8,7 @@ import type {
 	ExperimentId,
 	ToolGroup,
 	PromptComponent,
+	McpRestrictions,
 } from "@roo-code/types"
 
 import { addCustomInstructions } from "../core/prompts/sections/custom-instructions"
@@ -203,6 +204,51 @@ export function getModeSelection(mode: string, promptComponent?: PromptComponent
 	}
 }
 
+// MCP restriction validation helpers
+function isServerAllowedForMode(
+	serverName: string,
+	restrictions: McpRestrictions,
+	serverDefaultEnabled?: boolean, // NEW: Server's defaultEnabled setting
+): boolean {
+	// NEW: Handle defaultEnabled logic first
+	// If server has defaultEnabled: false, it must be explicitly allowed
+	if (serverDefaultEnabled === false) {
+		// Only allowed if explicitly in allowedServers list
+		return restrictions.allowedServers ? restrictions.allowedServers.includes(serverName) : false
+	}
+
+	// EXISTING LOGIC: For defaultEnabled: true (default behavior)
+	// If allowedServers is defined, server must be in the list
+	if (restrictions.allowedServers && !restrictions.allowedServers.includes(serverName)) {
+		return false
+	}
+
+	// If disallowedServers is defined, server must not be in the list
+	if (restrictions.disallowedServers && restrictions.disallowedServers.includes(serverName)) {
+		return false
+	}
+
+	return true
+}
+
+function isToolAllowedForModeAndServer(serverName: string, toolName: string, restrictions: McpRestrictions): boolean {
+	// If allowedTools is defined, tool must be in the list
+	if (restrictions.allowedTools) {
+		const isAllowed = restrictions.allowedTools.some((t) => t.serverName === serverName && t.toolName === toolName)
+		if (!isAllowed) return false
+	}
+
+	// If disallowedTools is defined, tool must not be in the list
+	if (restrictions.disallowedTools) {
+		const isDisallowed = restrictions.disallowedTools.some(
+			(t) => t.serverName === serverName && t.toolName === toolName,
+		)
+		if (isDisallowed) return false
+	}
+
+	return true
+}
+
 // Custom error class for file restrictions
 export class FileRestrictionError extends Error {
 	constructor(mode: string, pattern: string, description: string | undefined, filePath: string) {
@@ -220,6 +266,7 @@ export function isToolAllowedForMode(
 	toolRequirements?: Record<string, boolean>,
 	toolParams?: Record<string, any>, // All tool parameters
 	experiments?: Record<string, boolean>,
+	mcpContext?: { serverName?: string; toolName?: string; serverDefaultEnabled?: boolean }, // NEW: Added serverDefaultEnabled
 ): boolean {
 	// Always allow these tools
 	if (ALWAYS_AVAILABLE_TOOLS.includes(tool as any)) {
@@ -244,6 +291,26 @@ export function isToolAllowedForMode(
 	const mode = getModeBySlug(modeSlug, customModes)
 	if (!mode) {
 		return false
+	}
+
+	// NEW: Check MCP restrictions for use_mcp_tool and access_mcp_resource
+	if ((tool === "use_mcp_tool" || tool === "access_mcp_resource") && mcpContext?.serverName) {
+		const restrictions = mode.mcpRestrictions || {} // Use empty object if no restrictions defined
+
+		// Always check defaultEnabled, even if no explicit restrictions
+		if (!isServerAllowedForMode(mcpContext.serverName, restrictions, mcpContext.serverDefaultEnabled)) {
+			return false
+		}
+
+		// Check tool-level restrictions (only for use_mcp_tool and only if restrictions exist)
+		if (
+			tool === "use_mcp_tool" &&
+			mcpContext.toolName &&
+			mode.mcpRestrictions &&
+			!isToolAllowedForModeAndServer(mcpContext.serverName, mcpContext.toolName, restrictions)
+		) {
+			return false
+		}
 	}
 
 	// Check if tool is in any of the mode's groups and respects any group options
