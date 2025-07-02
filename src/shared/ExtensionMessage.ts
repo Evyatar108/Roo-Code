@@ -59,6 +59,7 @@ export interface ExtensionMessage {
 		| "invoke"
 		| "messageUpdated"
 		| "mcpServers"
+		| "mcpServerConfigs"
 		| "enhancedPrompt"
 		| "commitSearchResults"
 		| "listApiConfig"

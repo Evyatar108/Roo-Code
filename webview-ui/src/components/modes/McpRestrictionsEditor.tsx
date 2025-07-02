@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react"
-import { VSCodeCheckbox, VSCodeTextArea } from "@vscode/webview-ui-toolkit/react"
 import { ChevronDown, ChevronUp, Info, Plus, X, Server, Wrench } from "lucide-react"
 
 import { McpRestrictions, McpToolRestriction } from "@roo-code/types"
@@ -34,12 +33,12 @@ export function McpRestrictionsEditor({
 	const [isExpanded, setIsExpanded] = useState(false)
 	const [activeTab, setActiveTab] = useState<"servers" | "tools">("servers")
 	const [showAdvanced, setShowAdvanced] = useState(false)
-	
+
 	// State for collapsible server groups (collapsed by default)
 	const [groupExpansionState, setGroupExpansionState] = useState({
 		enabled: false,
 		disabled: false,
-		restricted: false
+		restricted: false,
 	})
 
 	// Initialize local state when restrictions change
@@ -78,7 +77,7 @@ export function McpRestrictionsEditor({
 			return {
 				enabled: true,
 				reason: "explicitlyAllowed" as const,
-				reasonText: t("prompts:mcpRestrictions.status.explicitlyAllowed")
+				reasonText: t("prompts:mcpRestrictions.status.explicitlyAllowed"),
 			}
 		}
 
@@ -86,7 +85,7 @@ export function McpRestrictionsEditor({
 			return {
 				enabled: false,
 				reason: "explicitlyDisallowed" as const,
-				reasonText: t("prompts:mcpRestrictions.status.explicitlyDisallowed")
+				reasonText: t("prompts:mcpRestrictions.status.explicitlyDisallowed"),
 			}
 		}
 
@@ -95,7 +94,7 @@ export function McpRestrictionsEditor({
 			return {
 				enabled: false,
 				reason: "notInAllowList" as const,
-				reasonText: t("prompts:mcpRestrictions.status.notInAllowList")
+				reasonText: t("prompts:mcpRestrictions.status.notInAllowList"),
 			}
 		}
 
@@ -104,13 +103,13 @@ export function McpRestrictionsEditor({
 			return {
 				enabled: true,
 				reason: "defaultEnabled" as const,
-				reasonText: t("prompts:mcpRestrictions.status.defaultEnabled")
+				reasonText: t("prompts:mcpRestrictions.status.defaultEnabled"),
 			}
 		} else {
 			return {
 				enabled: false,
 				reason: "defaultDisabled" as const,
-				reasonText: t("prompts:mcpRestrictions.status.defaultDisabled")
+				reasonText: t("prompts:mcpRestrictions.status.defaultDisabled"),
 			}
 		}
 	}
@@ -118,9 +117,10 @@ export function McpRestrictionsEditor({
 	// Helper to check if server has complex restrictions (more than just allow/disallow)
 	const hasComplexRestrictions = (server: McpServer) => {
 		// Check if server has tool-level restrictions
-		const hasToolRestrictions = allowedTools.some(t => t.serverName === server.name) ||
-									disallowedTools.some(t => t.serverName === server.name)
-		
+		const hasToolRestrictions =
+			allowedTools.some((t) => t.serverName === server.name) ||
+			disallowedTools.some((t) => t.serverName === server.name)
+
 		// Only consider it "restricted" if it has tool-level restrictions
 		// Simple allow/disallow at server level doesn't count as "restricted"
 		return hasToolRestrictions
@@ -128,32 +128,31 @@ export function McpRestrictionsEditor({
 
 	// Group servers by their status and restriction state
 	const serverGroups = {
-		enabled: availableServers.filter(server => {
+		enabled: availableServers.filter((server) => {
 			const status = getServerStatus(server)
 			return status.enabled && !hasComplexRestrictions(server)
 		}),
-		disabled: availableServers.filter(server => {
+		disabled: availableServers.filter((server) => {
 			const status = getServerStatus(server)
 			return !status.enabled
 		}),
-		restricted: availableServers.filter(server => {
+		restricted: availableServers.filter((server) => {
 			const status = getServerStatus(server)
 			return status.enabled && hasComplexRestrictions(server)
-		})
+		}),
 	}
 
 	// Helper to toggle group expansion
 	const toggleGroupExpansion = (groupType: "enabled" | "disabled" | "restricted") => {
-		setGroupExpansionState(prev => ({
+		setGroupExpansionState((prev) => ({
 			...prev,
-			[groupType]: !prev[groupType]
+			[groupType]: !prev[groupType],
 		}))
 	}
 
 	// Server management functions
 	const toggleServerInList = (serverName: string, listType: "allowed" | "disallowed") => {
 		const currentList = listType === "allowed" ? allowedServers : disallowedServers
-		const otherListType = listType === "allowed" ? "disallowed" : "allowed"
 		const otherList = listType === "allowed" ? disallowedServers : allowedServers
 
 		let newRestrictions = { ...(localRestrictions || {}) } // Ensure we always have a valid object to spread
@@ -268,7 +267,9 @@ export function McpRestrictionsEditor({
 						</StandardTooltip>
 					)}
 					<StandardTooltip
-						content={isExpanded ? t("prompts:mcpRestrictions.collapse") : t("prompts:mcpRestrictions.expand")}>
+						content={
+							isExpanded ? t("prompts:mcpRestrictions.collapse") : t("prompts:mcpRestrictions.expand")
+						}>
 						<Button
 							variant="ghost"
 							size="icon"
@@ -330,18 +331,21 @@ export function McpRestrictionsEditor({
 									<div className="flex items-center gap-2">
 										<div className="w-2 h-2 rounded-full bg-green-500" />
 										<span>
-											{t("prompts:mcpRestrictions.servers.enabledCount", { 
+											{t("prompts:mcpRestrictions.servers.enabledCount", {
 												count: serverGroups.enabled.length + serverGroups.restricted.length,
-												names: [...serverGroups.enabled, ...serverGroups.restricted].map(s => s.name).join(", ") || "None"
+												names:
+													[...serverGroups.enabled, ...serverGroups.restricted]
+														.map((s) => s.name)
+														.join(", ") || "None",
 											})}
 										</span>
 									</div>
 									<div className="flex items-center gap-2">
 										<div className="w-2 h-2 rounded-full bg-red-500" />
 										<span>
-											{t("prompts:mcpRestrictions.servers.disabledCount", { 
+											{t("prompts:mcpRestrictions.servers.disabledCount", {
 												count: serverGroups.disabled.length,
-												names: serverGroups.disabled.map(s => s.name).join(", ") || "None"
+												names: serverGroups.disabled.map((s) => s.name).join(", ") || "None",
 											})}
 										</span>
 									</div>
@@ -349,9 +353,9 @@ export function McpRestrictionsEditor({
 										<div className="flex items-center gap-2">
 											<div className="w-2 h-2 rounded-full bg-yellow-500" />
 											<span>
-												{t("prompts:mcpRestrictions.servers.restrictedCount", { 
+												{t("prompts:mcpRestrictions.servers.restrictedCount", {
 													count: serverGroups.restricted.length,
-													names: serverGroups.restricted.map(s => s.name).join(", ")
+													names: serverGroups.restricted.map((s) => s.name).join(", "),
 												})}
 											</span>
 										</div>
@@ -406,7 +410,7 @@ export function McpRestrictionsEditor({
 									groupType="restricted"
 								/>
 							</div>
-							
+
 							{/* Legacy Server Restrictions Summary */}
 							{(allowedServers.length > 0 || disallowedServers.length > 0) && (
 								<div className="text-sm text-vscode-descriptionForeground p-2 bg-vscode-editor-background border border-vscode-widget-border rounded">
@@ -516,12 +520,18 @@ export function McpRestrictionsEditor({
 									onClick={() => setShowAdvanced(!showAdvanced)}
 									disabled={disabled}
 									className="w-full justify-start">
-									{showAdvanced ? <ChevronUp className="w-4 h-4 mr-1" /> : <ChevronDown className="w-4 h-4 mr-1" />}
+									{showAdvanced ? (
+										<ChevronUp className="w-4 h-4 mr-1" />
+									) : (
+										<ChevronDown className="w-4 h-4 mr-1" />
+									)}
 									{t("prompts:mcpRestrictions.tools.advancedPatterns")}
 								</Button>
 								{showAdvanced && (
 									<div className="mt-2 p-3 bg-vscode-editor-background border border-vscode-widget-border rounded text-sm">
-										<div className="font-medium mb-2">{t("prompts:mcpRestrictions.patterns.title")}</div>
+										<div className="font-medium mb-2">
+											{t("prompts:mcpRestrictions.patterns.title")}
+										</div>
 										<div className="space-y-1 text-vscode-descriptionForeground">
 											<div>
 												<code>*</code> - {t("prompts:mcpRestrictions.patterns.wildcard")}
@@ -579,7 +589,7 @@ function CollapsibleServerGroup({
 	toggleServerInList,
 	disabled,
 	icon,
-	groupType
+	groupType,
 }: CollapsibleServerGroupProps) {
 	const { t } = useAppTranslation()
 
@@ -606,7 +616,7 @@ function CollapsibleServerGroup({
 									variant="ghost"
 									size="sm"
 									onClick={() => {
-										servers.forEach(server => {
+										servers.forEach((server) => {
 											if (!allowedServers.includes(server.name)) {
 												toggleServerInList(server.name, "allowed")
 											}
@@ -622,7 +632,7 @@ function CollapsibleServerGroup({
 									variant="ghost"
 									size="sm"
 									onClick={() => {
-										servers.forEach(server => {
+										servers.forEach((server) => {
 											if (!disallowedServers.includes(server.name)) {
 												toggleServerInList(server.name, "disallowed")
 											}
@@ -677,7 +687,7 @@ function CompactServerRow({
 	disallowedServers,
 	getServerStatus,
 	toggleServerInList,
-	disabled
+	disabled,
 }: CompactServerRowProps) {
 	const { t } = useAppTranslation()
 	const [showDetails, setShowDetails] = useState(false)
@@ -691,11 +701,13 @@ function CompactServerRow({
 			<div className="flex items-center justify-between p-2">
 				<div className="flex items-center gap-2 flex-1 min-w-0">
 					{/* Status indicator */}
-					<div className={cn("w-2 h-2 rounded-full flex-shrink-0", {
-						"bg-green-500": status.enabled,
-						"bg-red-500": !status.enabled
-					})} />
-					
+					<div
+						className={cn("w-2 h-2 rounded-full flex-shrink-0", {
+							"bg-green-500": status.enabled,
+							"bg-red-500": !status.enabled,
+						})}
+					/>
+
 					{/* Server info */}
 					<div className="flex-1 min-w-0">
 						<div className="flex items-center gap-2">
@@ -703,11 +715,14 @@ function CompactServerRow({
 							<span className="text-xs text-vscode-descriptionForeground">
 								({server.tools.length} tools)
 							</span>
-							<span className={cn("text-xs px-1.5 py-0.5 rounded", {
-								"bg-green-600/20 text-green-300": status.enabled,
-								"bg-red-600/20 text-red-300": !status.enabled
-							})}>
-								{status.enabled ? t("prompts:mcpRestrictions.status.enabled") : t("prompts:mcpRestrictions.status.disabled")}
+							<span
+								className={cn("text-xs px-1.5 py-0.5 rounded", {
+									"bg-green-600/20 text-green-300": status.enabled,
+									"bg-red-600/20 text-red-300": !status.enabled,
+								})}>
+								{status.enabled
+									? t("prompts:mcpRestrictions.status.enabled")
+									: t("prompts:mcpRestrictions.status.disabled")}
 							</span>
 						</div>
 					</div>
@@ -730,7 +745,7 @@ function CompactServerRow({
 						onClick={() => toggleServerInList(server.name, "allowed")}
 						disabled={disabled}
 						className={cn("text-xs h-6 py-0 px-2", {
-							"bg-green-600/20 border-green-600/50": isAllowed
+							"bg-green-600/20 border-green-600/50": isAllowed,
 						})}>
 						{t("prompts:mcpRestrictions.servers.allow")}
 					</Button>
@@ -740,7 +755,7 @@ function CompactServerRow({
 						onClick={() => toggleServerInList(server.name, "disallowed")}
 						disabled={disabled}
 						className={cn("text-xs h-6 py-0 px-2", {
-							"bg-red-600/20 border-red-600/50": isDisallowed
+							"bg-red-600/20 border-red-600/50": isDisallowed,
 						})}>
 						{t("prompts:mcpRestrictions.servers.disallow")}
 					</Button>
@@ -750,7 +765,9 @@ function CompactServerRow({
 			{/* Detailed info (expandable) */}
 			{showDetails && (
 				<div className="border-t border-vscode-panel-border p-2 text-xs text-vscode-descriptionForeground bg-vscode-textCodeBlock-background">
-					<div><strong>{t("prompts:mcpRestrictions.status.reason")}:</strong> {status.reasonText}</div>
+					<div>
+						<strong>{t("prompts:mcpRestrictions.status.reason")}:</strong> {status.reasonText}
+					</div>
 					{server.defaultEnabled === false && (
 						<div className="mt-1 text-vscode-editorWarning-foreground">
 							{t("prompts:mcpRestrictions.servers.optIn")}
@@ -773,14 +790,14 @@ interface ServerToolPickerProps {
 	disabled?: boolean
 }
 
-function ServerToolPicker({ 
-	value, 
-	onSelect, 
-	placeholder, 
-	type, 
-	availableServers, 
-	selectedServerName, 
-	disabled 
+function ServerToolPicker({
+	value,
+	onSelect,
+	placeholder,
+	type,
+	availableServers,
+	selectedServerName,
+	disabled,
 }: ServerToolPickerProps) {
 	const { t } = useAppTranslation()
 	const [isOpen, setIsOpen] = useState(false)
@@ -791,33 +808,35 @@ function ServerToolPicker({
 	// Get available options based on type
 	const getOptions = () => {
 		if (type === "server") {
-			return availableServers.map(server => ({
+			return availableServers.map((server) => ({
 				value: server.name,
 				label: server.name,
 				description: `${server.tools.length} tools available`,
 				status: server.status,
-				icon: <Server className="w-4 h-4" />
+				icon: <Server className="w-4 h-4" />,
 			}))
 		} else {
 			// Tool type - find tools for the selected server
-			const server = availableServers.find(s => s.name === selectedServerName)
+			const server = availableServers.find((s) => s.name === selectedServerName)
 			if (!server) return []
-			
-			return server.tools.map(tool => ({
+
+			return server.tools.map((tool) => ({
 				value: tool.name,
 				label: tool.name,
 				description: tool.description || "No description available",
 				status: "available" as const,
-				icon: <Wrench className="w-4 h-4" />
+				icon: <Wrench className="w-4 h-4" />,
 			}))
 		}
 	}
 
 	// Filter options based on search term with pattern support
-	const filteredOptions = getOptions().filter(option => {
-		const searchValue = value || searchTerm  // Use current input value or search term
-		return patternMatching.matchesPattern(option.label, searchValue) || 
-			   patternMatching.matchesPattern(option.description, searchValue)
+	const filteredOptions = getOptions().filter((option) => {
+		const searchValue = value || searchTerm // Use current input value or search term
+		return (
+			patternMatching.matchesPattern(option.label, searchValue) ||
+			patternMatching.matchesPattern(option.description, searchValue)
+		)
 	})
 
 	// Close dropdown when clicking outside
@@ -865,7 +884,7 @@ function ServerToolPicker({
 						"w-full px-3 py-2 text-sm bg-vscode-input-background border border-vscode-input-border rounded",
 						"focus:outline-none focus:ring-1 focus:ring-vscode-focusBorder",
 						"disabled:opacity-50 disabled:cursor-not-allowed",
-						"pr-8" // Make room for the dropdown arrow
+						"pr-8", // Make room for the dropdown arrow
 					)}
 				/>
 				<Button
@@ -880,36 +899,33 @@ function ServerToolPicker({
 
 			{/* Dropdown */}
 			{isOpen && !disabled && (
-				<div className={cn(
-					"absolute z-50 w-full mt-1 bg-vscode-dropdown-background",
-					"border border-vscode-dropdown-border rounded shadow-lg",
-					"max-h-64 overflow-y-auto"
-				)}>
+				<div
+					className={cn(
+						"absolute z-50 w-full mt-1 bg-vscode-dropdown-background",
+						"border border-vscode-dropdown-border rounded shadow-lg",
+						"max-h-64 overflow-y-auto",
+					)}>
 					{filteredOptions.length === 0 ? (
 						<div className="px-3 py-2 text-sm text-vscode-descriptionForeground">
-							{type === "server" 
+							{type === "server"
 								? t("prompts:mcpRestrictions.picker.noServers")
-								: selectedServerName 
-									? t("prompts:mcpRestrictions.picker.noTools") 
-									: t("prompts:mcpRestrictions.picker.selectServerFirst")
-							}
+								: selectedServerName
+									? t("prompts:mcpRestrictions.picker.noTools")
+									: t("prompts:mcpRestrictions.picker.selectServerFirst")}
 						</div>
 					) : (
-						filteredOptions.map((option, index) => (
+						filteredOptions.map((option, _index) => (
 							<div
 								key={option.value}
 								className={cn(
 									"flex items-center gap-3 px-3 py-2 cursor-pointer",
 									"hover:bg-vscode-list-hoverBackground",
 									"border-b border-vscode-dropdown-border last:border-b-0",
-									{ "bg-vscode-list-activeSelectionBackground": value === option.value }
+									{ "bg-vscode-list-activeSelectionBackground": value === option.value },
 								)}
 								onClick={() => handleSelect(option.value)}>
-								
 								{/* Icon */}
-								<div className="flex-shrink-0 text-vscode-descriptionForeground">
-									{option.icon}
-								</div>
+								<div className="flex-shrink-0 text-vscode-descriptionForeground">{option.icon}</div>
 
 								{/* Content */}
 								<div className="flex-grow min-w-0">
@@ -918,11 +934,13 @@ function ServerToolPicker({
 											{option.label}
 										</span>
 										{type === "server" && option.status && (
-											<div className={cn("w-2 h-2 rounded-full flex-shrink-0", {
-												"bg-green-500": option.status === "connected",
-												"bg-red-500": option.status === "error",
-												"bg-yellow-500": option.status === "disconnected"
-											})} />
+											<div
+												className={cn("w-2 h-2 rounded-full flex-shrink-0", {
+													"bg-green-500": option.status === "connected",
+													"bg-red-500": option.status === "error",
+													"bg-yellow-500": option.status === "disconnected",
+												})}
+											/>
 										)}
 									</div>
 									<div className="text-xs text-vscode-descriptionForeground truncate">
@@ -934,7 +952,11 @@ function ServerToolPicker({
 								{value === option.value && (
 									<div className="flex-shrink-0 text-vscode-foreground">
 										<svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-											<path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+											<path
+												fillRule="evenodd"
+												d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+												clipRule="evenodd"
+											/>
 										</svg>
 									</div>
 								)}

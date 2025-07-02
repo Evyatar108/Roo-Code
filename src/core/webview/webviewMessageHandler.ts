@@ -720,24 +720,24 @@ export const webviewMessageHandler = async (
 			const mcpHub = provider.getMcpHub()
 			if (mcpHub) {
 				const servers = mcpHub.getAllServers()
-				const serverConfigs = servers.map(server => {
+				const serverConfigs = servers.map((server) => {
 					const config = mcpHub.getServerConfig(server.name)
 					return {
 						name: server.name,
 						status: server.status,
 						tools: server.tools || [],
-						defaultEnabled: config?.defaultEnabled !== false // Default to true if not specified
+						defaultEnabled: config?.defaultEnabled !== false, // Default to true if not specified
 					}
 				})
-				
+
 				provider.postMessageToWebview({
 					type: "mcpServerConfigs",
-					serverConfigs
+					mcpServerConfigs: serverConfigs,
 				})
 			} else {
 				provider.postMessageToWebview({
-					type: "mcpServerConfigs", 
-					serverConfigs: []
+					type: "mcpServerConfigs",
+					mcpServerConfigs: [],
 				})
 			}
 			break
