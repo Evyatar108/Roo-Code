@@ -179,6 +179,7 @@
 		},
 		"servers": {
 			"description": "Control which MCP servers are available. If no servers are explicitly allowed, all servers (except those disallowed) will be available.",
+			"overview": "Overview",
 			"allow": "Allow",
 			"disallow": "Block",
 			"toolsCount": "tools",
@@ -187,7 +188,8 @@
 			"disallowedServers": "Blocked servers",
 			"currentStatus": "Current Server Status",
 			"enabledCount": "{{count}} enabled: {{names}}",
-			"disabledCount": "{{count}} disabled: {{names}}"
+			"disabledCount": "{{count}} disabled: {{names}}",
+			"restrictedCount": "{{count}} with restrictions: {{names}}"
 		},
 		"tools": {
 			"description": "Control specific tools within servers. Use patterns like 'delete_*' to match multiple tools.",
@@ -227,6 +229,16 @@
 			"noServers": "No servers available",
 			"noTools": "No tools available for this server",
 			"selectServerFirst": "Please select a server first"
+		},
+		"serverGroups": {
+			"enabled": "Enabled Servers",
+			"disabled": "Disabled Servers",
+			"restricted": "Servers with Restrictions",
+			"expandGroup": "Expand group",
+			"collapseGroup": "Collapse group",
+			"allowAll": "Allow All",
+			"blockAll": "Block All",
+			"clearRestrictions": "Clear All Restrictions"
 		}
 	}
 }

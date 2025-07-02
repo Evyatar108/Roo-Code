@@ -34,6 +34,13 @@ export function McpRestrictionsEditor({
 	const [isExpanded, setIsExpanded] = useState(false)
 	const [activeTab, setActiveTab] = useState<"servers" | "tools">("servers")
 	const [showAdvanced, setShowAdvanced] = useState(false)
+	
+	// State for collapsible server groups
+	const [groupExpansionState, setGroupExpansionState] = useState({
+		enabled: true,
+		disabled: false,
+		restricted: true
+	})
 
 	// Initialize local state when restrictions change
 	const [localRestrictions, setLocalRestrictions] = useState<McpRestrictions | undefined>(restrictions)
@@ -106,6 +113,35 @@ export function McpRestrictionsEditor({
 				reasonText: t("prompts:mcpRestrictions.status.defaultDisabled")
 			}
 		}
+	}
+
+	// Helper to check if server has any restrictions applied
+	const hasServerRestrictions = (server: McpServer) => {
+		return allowedServers.includes(server.name) || disallowedServers.includes(server.name)
+	}
+
+	// Group servers by their status and restriction state
+	const serverGroups = {
+		enabled: availableServers.filter(server => {
+			const status = getServerStatus(server)
+			return status.enabled && !hasServerRestrictions(server)
+		}),
+		disabled: availableServers.filter(server => {
+			const status = getServerStatus(server)
+			return !status.enabled
+		}),
+		restricted: availableServers.filter(server => {
+			const status = getServerStatus(server)
+			return status.enabled && hasServerRestrictions(server)
+		})
+	}
+
+	// Helper to toggle group expansion
+	const toggleGroupExpansion = (groupType: "enabled" | "disabled" | "restricted") => {
+		setGroupExpansionState(prev => ({
+			...prev,
+			[groupType]: !prev[groupType]
+		}))
 	}
 
 	// Server management functions
@@ -281,107 +317,88 @@ export function McpRestrictionsEditor({
 								{t("prompts:mcpRestrictions.servers.description")}
 							</div>
 
-							{/* Server List */}
-							<div className="space-y-2">
-								{availableServers.map((server) => {
-									const isAllowed = allowedServers.includes(server.name)
-									const isDisallowed = disallowedServers.includes(server.name)
-									const status = getServerStatus(server)
-
-									return (
-										<div
-											key={server.name}
-											className={`flex items-center justify-between p-3 border rounded ${
-												status.enabled 
-													? "border-green-600/30 bg-green-600/5" 
-													: "border-red-600/30 bg-red-600/5"
-											}`}>
-											<div className="flex items-center gap-3">
-												{/* Status Indicator */}
-												<div className="flex items-center gap-2">
-													<div className={`w-3 h-3 rounded-full ${
-														status.enabled 
-															? "bg-green-500" 
-															: "bg-red-500"
-													}`} />
-													<div className="flex flex-col">
-														<div className="font-medium flex items-center gap-2">
-															{server.name}
-															<span className={`text-xs px-2 py-0.5 rounded ${
-																status.enabled 
-																	? "bg-green-600/20 text-green-300" 
-																	: "bg-red-600/20 text-red-300"
-															}`}>
-																{status.enabled ? t("prompts:mcpRestrictions.status.enabled") : t("prompts:mcpRestrictions.status.disabled")}
-															</span>
-														</div>
-														<div className="text-xs text-vscode-descriptionForeground">
-															{server.tools.length} {t("prompts:mcpRestrictions.servers.toolsCount")}
-															{server.defaultEnabled === false && (
-																<span className="ml-2 text-vscode-editorWarning-foreground">
-																	({t("prompts:mcpRestrictions.servers.optIn")})
-																</span>
-															)}
-														</div>
-														<div className="text-xs text-vscode-descriptionForeground mt-1">
-															<strong>{t("prompts:mcpRestrictions.status.reason")}:</strong> {status.reasonText}
-														</div>
-													</div>
-												</div>
-											</div>
-											<div className="flex gap-2">
-												<Button
-													variant={isAllowed ? "secondary" : "ghost"}
-													size="sm"
-													onClick={() => toggleServerInList(server.name, "allowed")}
-													disabled={disabled}
-													className={isAllowed ? "bg-green-600/20 border-green-600/50" : ""}>
-													{t("prompts:mcpRestrictions.servers.allow")}
-												</Button>
-												<Button
-													variant={isDisallowed ? "secondary" : "ghost"}
-													size="sm"
-													onClick={() => toggleServerInList(server.name, "disallowed")}
-													disabled={disabled}
-													className={isDisallowed ? "bg-red-600/20 border-red-600/50" : ""}>
-													{t("prompts:mcpRestrictions.servers.disallow")}
-												</Button>
-											</div>
+							{/* Overview Summary */}
+							<div className="text-sm text-vscode-descriptionForeground p-3 bg-vscode-editor-background border border-vscode-widget-border rounded">
+								<div className="font-medium mb-2">{t("prompts:mcpRestrictions.servers.overview")}</div>
+								<div className="space-y-1">
+									<div className="flex items-center gap-2">
+										<div className="w-2 h-2 rounded-full bg-green-500" />
+										<span>
+											{t("prompts:mcpRestrictions.servers.enabledCount", { 
+												count: serverGroups.enabled.length + serverGroups.restricted.length,
+												names: [...serverGroups.enabled, ...serverGroups.restricted].map(s => s.name).join(", ") || "None"
+											})}
+										</span>
+									</div>
+									<div className="flex items-center gap-2">
+										<div className="w-2 h-2 rounded-full bg-red-500" />
+										<span>
+											{t("prompts:mcpRestrictions.servers.disabledCount", { 
+												count: serverGroups.disabled.length,
+												names: serverGroups.disabled.map(s => s.name).join(", ") || "None"
+											})}
+										</span>
+									</div>
+									{serverGroups.restricted.length > 0 && (
+										<div className="flex items-center gap-2">
+											<div className="w-2 h-2 rounded-full bg-yellow-500" />
+											<span>
+												{t("prompts:mcpRestrictions.servers.restrictedCount", { 
+													count: serverGroups.restricted.length,
+													names: serverGroups.restricted.map(s => s.name).join(", ")
+												})}
+											</span>
 										</div>
-									)
-								})}
+									)}
+								</div>
 							</div>
 
-							{/* Server Restrictions Summary */}
-							<div className="text-sm text-vscode-descriptionForeground p-3 bg-vscode-editor-background border border-vscode-widget-border rounded">
-								<div className="font-medium mb-2">{t("prompts:mcpRestrictions.servers.currentStatus")}</div>
-								{(() => {
-									const enabledServers = availableServers.filter(server => getServerStatus(server).enabled)
-									const disabledServers = availableServers.filter(server => !getServerStatus(server).enabled)
-									
-									return (
-										<div className="space-y-1">
-											<div className="flex items-center gap-2">
-												<div className="w-2 h-2 rounded-full bg-green-500" />
-												<span>
-													{t("prompts:mcpRestrictions.servers.enabledCount", { 
-														count: enabledServers.length,
-														names: enabledServers.map(s => s.name).join(", ") || "None"
-													})}
-												</span>
-											</div>
-											<div className="flex items-center gap-2">
-												<div className="w-2 h-2 rounded-full bg-red-500" />
-												<span>
-													{t("prompts:mcpRestrictions.servers.disabledCount", { 
-														count: disabledServers.length,
-														names: disabledServers.map(s => s.name).join(", ") || "None"
-													})}
-												</span>
-											</div>
-										</div>
-									)
-								})()}
+							{/* Collapsible Server Groups */}
+							<div className="space-y-3">
+								{/* Enabled Servers Group */}
+								<CollapsibleServerGroup
+									title={t("prompts:mcpRestrictions.serverGroups.enabled")}
+									servers={serverGroups.enabled}
+									isExpanded={groupExpansionState.enabled}
+									onToggleExpanded={() => toggleGroupExpansion("enabled")}
+									allowedServers={allowedServers}
+									disallowedServers={disallowedServers}
+									getServerStatus={getServerStatus}
+									toggleServerInList={toggleServerInList}
+									disabled={disabled}
+									icon={<div className="w-3 h-3 rounded-full bg-green-500" />}
+									groupType="enabled"
+								/>
+
+								{/* Disabled Servers Group */}
+								<CollapsibleServerGroup
+									title={t("prompts:mcpRestrictions.serverGroups.disabled")}
+									servers={serverGroups.disabled}
+									isExpanded={groupExpansionState.disabled}
+									onToggleExpanded={() => toggleGroupExpansion("disabled")}
+									allowedServers={allowedServers}
+									disallowedServers={disallowedServers}
+									getServerStatus={getServerStatus}
+									toggleServerInList={toggleServerInList}
+									disabled={disabled}
+									icon={<div className="w-3 h-3 rounded-full bg-red-500" />}
+									groupType="disabled"
+								/>
+
+								{/* Restricted Servers Group */}
+								<CollapsibleServerGroup
+									title={t("prompts:mcpRestrictions.serverGroups.restricted")}
+									servers={serverGroups.restricted}
+									isExpanded={groupExpansionState.restricted}
+									onToggleExpanded={() => toggleGroupExpansion("restricted")}
+									allowedServers={allowedServers}
+									disallowedServers={disallowedServers}
+									getServerStatus={getServerStatus}
+									toggleServerInList={toggleServerInList}
+									disabled={disabled}
+									icon={<div className="w-3 h-3 rounded-full bg-yellow-500" />}
+									groupType="restricted"
+								/>
 							</div>
 							
 							{/* Legacy Server Restrictions Summary */}
@@ -522,6 +539,215 @@ export function McpRestrictionsEditor({
 									</div>
 								)}
 							</div>
+						</div>
+					)}
+				</div>
+			)}
+		</div>
+	)
+}
+
+// CollapsibleServerGroup component for organizing servers by status
+interface CollapsibleServerGroupProps {
+	title: string
+	servers: McpServer[]
+	isExpanded: boolean
+	onToggleExpanded: () => void
+	allowedServers: string[]
+	disallowedServers: string[]
+	getServerStatus: (server: McpServer) => { enabled: boolean; reason: string; reasonText: string }
+	toggleServerInList: (serverName: string, listType: "allowed" | "disallowed") => void
+	disabled?: boolean
+	icon: React.ReactNode
+	groupType: "enabled" | "disabled" | "restricted"
+}
+
+function CollapsibleServerGroup({
+	title,
+	servers,
+	isExpanded,
+	onToggleExpanded,
+	allowedServers,
+	disallowedServers,
+	getServerStatus,
+	toggleServerInList,
+	disabled,
+	icon,
+	groupType
+}: CollapsibleServerGroupProps) {
+	const { t } = useAppTranslation()
+
+	if (servers.length === 0) return null
+
+	return (
+		<div className="border border-vscode-widget-border rounded">
+			{/* Group Header */}
+			<div
+				className="flex items-center justify-between p-3 cursor-pointer hover:bg-vscode-list-hoverBackground"
+				onClick={onToggleExpanded}>
+				<div className="flex items-center gap-2">
+					{icon}
+					<span className="font-medium text-vscode-foreground">
+						{title} ({servers.length})
+					</span>
+				</div>
+				<div className="flex items-center gap-2">
+					{/* Group Actions */}
+					{servers.length > 1 && (
+						<div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
+							{groupType !== "enabled" && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => {
+										servers.forEach(server => {
+											if (!allowedServers.includes(server.name)) {
+												toggleServerInList(server.name, "allowed")
+											}
+										})
+									}}
+									disabled={disabled}
+									className="text-xs h-6 py-0 px-2">
+									{t("prompts:mcpRestrictions.serverGroups.allowAll")}
+								</Button>
+							)}
+							{groupType !== "disabled" && (
+								<Button
+									variant="ghost"
+									size="sm"
+									onClick={() => {
+										servers.forEach(server => {
+											if (!disallowedServers.includes(server.name)) {
+												toggleServerInList(server.name, "disallowed")
+											}
+										})
+									}}
+									disabled={disabled}
+									className="text-xs h-6 py-0 px-2">
+									{t("prompts:mcpRestrictions.serverGroups.blockAll")}
+								</Button>
+							)}
+						</div>
+					)}
+					<ChevronDown className={cn("w-4 h-4 transition-transform", { "rotate-180": isExpanded })} />
+				</div>
+			</div>
+
+			{/* Group Content */}
+			{isExpanded && (
+				<div className="border-t border-vscode-widget-border">
+					<div className="space-y-2 p-2">
+						{servers.map((server) => (
+							<CompactServerRow
+								key={server.name}
+								server={server}
+								allowedServers={allowedServers}
+								disallowedServers={disallowedServers}
+								getServerStatus={getServerStatus}
+								toggleServerInList={toggleServerInList}
+								disabled={disabled}
+							/>
+						))}
+					</div>
+				</div>
+			)}
+		</div>
+	)
+}
+
+// Compact server row for use within collapsed groups
+interface CompactServerRowProps {
+	server: McpServer
+	allowedServers: string[]
+	disallowedServers: string[]
+	getServerStatus: (server: McpServer) => { enabled: boolean; reason: string; reasonText: string }
+	toggleServerInList: (serverName: string, listType: "allowed" | "disallowed") => void
+	disabled?: boolean
+}
+
+function CompactServerRow({
+	server,
+	allowedServers,
+	disallowedServers,
+	getServerStatus,
+	toggleServerInList,
+	disabled
+}: CompactServerRowProps) {
+	const { t } = useAppTranslation()
+	const [showDetails, setShowDetails] = useState(false)
+	const isAllowed = allowedServers.includes(server.name)
+	const isDisallowed = disallowedServers.includes(server.name)
+	const status = getServerStatus(server)
+
+	return (
+		<div className="border border-vscode-panel-border rounded bg-vscode-editor-background">
+			{/* Compact Row */}
+			<div className="flex items-center justify-between p-2">
+				<div className="flex items-center gap-2 flex-1 min-w-0">
+					{/* Status indicator */}
+					<div className={cn("w-2 h-2 rounded-full flex-shrink-0", {
+						"bg-green-500": status.enabled,
+						"bg-red-500": !status.enabled
+					})} />
+					
+					{/* Server info */}
+					<div className="flex-1 min-w-0">
+						<div className="flex items-center gap-2">
+							<span className="font-medium text-vscode-foreground truncate">{server.name}</span>
+							<span className="text-xs text-vscode-descriptionForeground">
+								({server.tools.length} tools)
+							</span>
+							<span className={cn("text-xs px-1.5 py-0.5 rounded", {
+								"bg-green-600/20 text-green-300": status.enabled,
+								"bg-red-600/20 text-red-300": !status.enabled
+							})}>
+								{status.enabled ? t("prompts:mcpRestrictions.status.enabled") : t("prompts:mcpRestrictions.status.disabled")}
+							</span>
+						</div>
+					</div>
+
+					{/* Expand details button */}
+					<Button
+						variant="ghost"
+						size="icon"
+						onClick={() => setShowDetails(!showDetails)}
+						className="h-6 w-6 flex-shrink-0">
+						<Info className="w-3 h-3" />
+					</Button>
+				</div>
+
+				{/* Action buttons */}
+				<div className="flex gap-1 flex-shrink-0">
+					<Button
+						variant={isAllowed ? "secondary" : "ghost"}
+						size="sm"
+						onClick={() => toggleServerInList(server.name, "allowed")}
+						disabled={disabled}
+						className={cn("text-xs h-6 py-0 px-2", {
+							"bg-green-600/20 border-green-600/50": isAllowed
+						})}>
+						{t("prompts:mcpRestrictions.servers.allow")}
+					</Button>
+					<Button
+						variant={isDisallowed ? "secondary" : "ghost"}
+						size="sm"
+						onClick={() => toggleServerInList(server.name, "disallowed")}
+						disabled={disabled}
+						className={cn("text-xs h-6 py-0 px-2", {
+							"bg-red-600/20 border-red-600/50": isDisallowed
+						})}>
+						{t("prompts:mcpRestrictions.servers.disallow")}
+					</Button>
+				</div>
+			</div>
+
+			{/* Detailed info (expandable) */}
+			{showDetails && (
+				<div className="border-t border-vscode-panel-border p-2 text-xs text-vscode-descriptionForeground bg-vscode-textCodeBlock-background">
+					<div><strong>{t("prompts:mcpRestrictions.status.reason")}:</strong> {status.reasonText}</div>
+					{server.defaultEnabled === false && (
+						<div className="mt-1 text-vscode-editorWarning-foreground">
+							{t("prompts:mcpRestrictions.servers.optIn")}
 						</div>
 					)}
 				</div>
