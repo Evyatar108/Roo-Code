@@ -35,11 +35,11 @@ export function McpRestrictionsEditor({
 	const [activeTab, setActiveTab] = useState<"servers" | "tools">("servers")
 	const [showAdvanced, setShowAdvanced] = useState(false)
 	
-	// State for collapsible server groups
+	// State for collapsible server groups (collapsed by default)
 	const [groupExpansionState, setGroupExpansionState] = useState({
-		enabled: true,
+		enabled: false,
 		disabled: false,
-		restricted: true
+		restricted: false
 	})
 
 	// Initialize local state when restrictions change
@@ -115,16 +115,22 @@ export function McpRestrictionsEditor({
 		}
 	}
 
-	// Helper to check if server has any restrictions applied
-	const hasServerRestrictions = (server: McpServer) => {
-		return allowedServers.includes(server.name) || disallowedServers.includes(server.name)
+	// Helper to check if server has complex restrictions (more than just allow/disallow)
+	const hasComplexRestrictions = (server: McpServer) => {
+		// Check if server has tool-level restrictions
+		const hasToolRestrictions = allowedTools.some(t => t.serverName === server.name) ||
+									disallowedTools.some(t => t.serverName === server.name)
+		
+		// Only consider it "restricted" if it has tool-level restrictions
+		// Simple allow/disallow at server level doesn't count as "restricted"
+		return hasToolRestrictions
 	}
 
 	// Group servers by their status and restriction state
 	const serverGroups = {
 		enabled: availableServers.filter(server => {
 			const status = getServerStatus(server)
-			return status.enabled && !hasServerRestrictions(server)
+			return status.enabled && !hasComplexRestrictions(server)
 		}),
 		disabled: availableServers.filter(server => {
 			const status = getServerStatus(server)
@@ -132,7 +138,7 @@ export function McpRestrictionsEditor({
 		}),
 		restricted: availableServers.filter(server => {
 			const status = getServerStatus(server)
-			return status.enabled && hasServerRestrictions(server)
+			return status.enabled && hasComplexRestrictions(server)
 		})
 	}
 
