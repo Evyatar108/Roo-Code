@@ -37,15 +37,25 @@ function isToolAllowedForModeAndServer(
 ): boolean {
 	// If allowedTools is defined, tool must be in the list
 	if (restrictions.allowedTools) {
-		const isAllowed = restrictions.allowedTools.some((t: any) => 
-			t.serverName === serverName && t.toolName === toolName
+		// Filter out empty entries before checking
+		const validAllowedTools = restrictions.allowedTools.filter((t: any) => 
+			t.serverName?.trim() && t.toolName?.trim()
 		)
-		if (!isAllowed) return false
+		if (validAllowedTools.length > 0) {
+			const isAllowed = validAllowedTools.some((t: any) => 
+				t.serverName === serverName && t.toolName === toolName
+			)
+			if (!isAllowed) return false
+		}
 	}
 	
 	// If disallowedTools is defined, tool must not be in the list
 	if (restrictions.disallowedTools) {
-		const isDisallowed = restrictions.disallowedTools.some((t: any) =>
+		// Filter out empty entries before checking
+		const validDisallowedTools = restrictions.disallowedTools.filter((t: any) => 
+			t.serverName?.trim() && t.toolName?.trim()
+		)
+		const isDisallowed = validDisallowedTools.some((t: any) =>
 			t.serverName === serverName && t.toolName === toolName
 		)
 		if (isDisallowed) return false

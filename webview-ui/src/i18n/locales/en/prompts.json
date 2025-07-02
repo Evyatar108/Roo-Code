@@ -184,7 +184,10 @@
 			"toolsCount": "tools",
 			"optIn": "opt-in required",
 			"allowedServers": "Allowed servers",
-			"disallowedServers": "Blocked servers"
+			"disallowedServers": "Blocked servers",
+			"currentStatus": "Current Server Status",
+			"enabledCount": "{{count}} enabled: {{names}}",
+			"disabledCount": "{{count}} disabled: {{names}}"
 		},
 		"tools": {
 			"description": "Control specific tools within servers. Use patterns like 'delete_*' to match multiple tools.",
@@ -207,6 +210,16 @@
 			"example1": "Matches docs-api, docs-search, etc.",
 			"example2": "Matches server-admin, user-admin, etc.",
 			"example3": "Matches delete_file, delete_user, etc."
+		},
+		"status": {
+			"enabled": "ENABLED",
+			"disabled": "DISABLED",
+			"reason": "Reason",
+			"explicitlyAllowed": "Explicitly allowed by user",
+			"explicitlyDisallowed": "Explicitly disallowed by user",
+			"notInAllowList": "Not included in allowed servers list",
+			"defaultEnabled": "Enabled by default server configuration",
+			"defaultDisabled": "Disabled by default server configuration (opt-in required)"
 		}
 	}
 }

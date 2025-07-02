@@ -64,8 +64,12 @@ export const mcpRestrictionsSchema = z
 			}
 			// Cannot have both allowedTools and disallowedTools for same server/tool combination
 			if (data.allowedTools && data.disallowedTools) {
-				const allowedSet = new Set(data.allowedTools.map((t) => `${t.serverName}:${t.toolName}`))
-				const disallowedSet = new Set(data.disallowedTools.map((t) => `${t.serverName}:${t.toolName}`))
+				// Filter out empty entries before checking for conflicts
+				const allowedFiltered = data.allowedTools.filter(t => t.serverName.trim() && t.toolName.trim())
+				const disallowedFiltered = data.disallowedTools.filter(t => t.serverName.trim() && t.toolName.trim())
+				
+				const allowedSet = new Set(allowedFiltered.map((t) => `${t.serverName}:${t.toolName}`))
+				const disallowedSet = new Set(disallowedFiltered.map((t) => `${t.serverName}:${t.toolName}`))
 				const intersection = Array.from(allowedSet).filter((x) => disallowedSet.has(x))
 				return intersection.length === 0
 			}

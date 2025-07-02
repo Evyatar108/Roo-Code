@@ -266,19 +266,29 @@ export function isServerAllowedForMode(
 export function isToolAllowedForModeAndServer(serverName: string, toolName: string, restrictions: McpRestrictions): boolean {
 	// If allowedTools is defined, tool must match at least one entry
 	if (restrictions.allowedTools) {
-		const isAllowed = restrictions.allowedTools.some((t) => {
-			// Check if server name matches (with pattern support)
-			const serverMatches = matchesAnyPattern(serverName, [t.serverName])
-			// Check if tool name matches (with pattern support)  
-			const toolMatches = matchesAnyPattern(toolName, [t.toolName])
-			return serverMatches && toolMatches
-		})
-		if (!isAllowed) return false
+		// Filter out empty entries before checking
+		const validAllowedTools = restrictions.allowedTools.filter(t => 
+			t.serverName?.trim() && t.toolName?.trim()
+		)
+		if (validAllowedTools.length > 0) {
+			const isAllowed = validAllowedTools.some((t) => {
+				// Check if server name matches (with pattern support)
+				const serverMatches = matchesAnyPattern(serverName, [t.serverName])
+				// Check if tool name matches (with pattern support)  
+				const toolMatches = matchesAnyPattern(toolName, [t.toolName])
+				return serverMatches && toolMatches
+			})
+			if (!isAllowed) return false
+		}
 	}
 
 	// If disallowedTools is defined, tool must not match any entry
 	if (restrictions.disallowedTools) {
-		const isDisallowed = restrictions.disallowedTools.some((t) => {
+		// Filter out empty entries before checking
+		const validDisallowedTools = restrictions.disallowedTools.filter(t => 
+			t.serverName?.trim() && t.toolName?.trim()
+		)
+		const isDisallowed = validDisallowedTools.some((t) => {
 			// Check if server name matches (with pattern support)
 			const serverMatches = matchesAnyPattern(serverName, [t.serverName])
 			// Check if tool name matches (with pattern support)

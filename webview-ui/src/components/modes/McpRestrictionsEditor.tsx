@@ -60,13 +60,60 @@ export function McpRestrictionsEditor({
 	const allowedTools = localRestrictions?.allowedTools ?? []
 	const disallowedTools = localRestrictions?.disallowedTools ?? []
 
+	// Helper to determine server status and reasoning
+	const getServerStatus = (server: McpServer) => {
+		const isExplicitlyAllowed = allowedServers.includes(server.name)
+		const isExplicitlyDisallowed = disallowedServers.includes(server.name)
+		const defaultEnabled = server.defaultEnabled !== false // Default to true if not specified
+
+		if (isExplicitlyAllowed) {
+			return {
+				enabled: true,
+				reason: "explicitlyAllowed" as const,
+				reasonText: t("prompts:mcpRestrictions.status.explicitlyAllowed")
+			}
+		}
+
+		if (isExplicitlyDisallowed) {
+			return {
+				enabled: false,
+				reason: "explicitlyDisallowed" as const,
+				reasonText: t("prompts:mcpRestrictions.status.explicitlyDisallowed")
+			}
+		}
+
+		// If allowedServers list exists, server must be in it to be enabled
+		if (allowedServers.length > 0) {
+			return {
+				enabled: false,
+				reason: "notInAllowList" as const,
+				reasonText: t("prompts:mcpRestrictions.status.notInAllowList")
+			}
+		}
+
+		// No explicit restrictions, use defaultEnabled
+		if (defaultEnabled) {
+			return {
+				enabled: true,
+				reason: "defaultEnabled" as const,
+				reasonText: t("prompts:mcpRestrictions.status.defaultEnabled")
+			}
+		} else {
+			return {
+				enabled: false,
+				reason: "defaultDisabled" as const,
+				reasonText: t("prompts:mcpRestrictions.status.defaultDisabled")
+			}
+		}
+	}
+
 	// Server management functions
 	const toggleServerInList = (serverName: string, listType: "allowed" | "disallowed") => {
 		const currentList = listType === "allowed" ? allowedServers : disallowedServers
 		const otherListType = listType === "allowed" ? "disallowed" : "allowed"
 		const otherList = listType === "allowed" ? disallowedServers : allowedServers
 
-		let newRestrictions = { ...localRestrictions }
+		let newRestrictions = { ...(localRestrictions || {}) } // Ensure we always have a valid object to spread
 
 		if (currentList.includes(serverName)) {
 			// Remove from current list
@@ -105,7 +152,7 @@ export function McpRestrictionsEditor({
 		const updatedList = [...currentList, newTool]
 
 		const newRestrictions = {
-			...localRestrictions,
+			...(localRestrictions || {}), // Ensure we always have a valid object to spread
 			[listType === "allowed" ? "allowedTools" : "disallowedTools"]: updatedList,
 		}
 
@@ -123,7 +170,7 @@ export function McpRestrictionsEditor({
 		updatedList[index] = { ...updatedList[index], [field]: value }
 
 		const newRestrictions = {
-			...localRestrictions,
+			...(localRestrictions || {}), // Ensure we always have a valid object to spread
 			[listType === "allowed" ? "allowedTools" : "disallowedTools"]: updatedList,
 		}
 
@@ -135,7 +182,7 @@ export function McpRestrictionsEditor({
 		const updatedList = currentList.filter((_, i) => i !== index)
 
 		const newRestrictions = {
-			...localRestrictions,
+			...(localRestrictions || {}), // Ensure we always have a valid object to spread
 			[listType === "allowed" ? "allowedTools" : "disallowedTools"]:
 				updatedList.length > 0 ? updatedList : undefined,
 		}
@@ -238,22 +285,46 @@ export function McpRestrictionsEditor({
 								{availableServers.map((server) => {
 									const isAllowed = allowedServers.includes(server.name)
 									const isDisallowed = disallowedServers.includes(server.name)
-									const isUnrestricted = !isAllowed && !isDisallowed
+									const status = getServerStatus(server)
 
 									return (
 										<div
 											key={server.name}
-											className="flex items-center justify-between p-2 border border-vscode-widget-border rounded">
+											className={`flex items-center justify-between p-3 border rounded ${
+												status.enabled 
+													? "border-green-600/30 bg-green-600/5" 
+													: "border-red-600/30 bg-red-600/5"
+											}`}>
 											<div className="flex items-center gap-3">
-												<div className="flex flex-col">
-													<div className="font-medium">{server.name}</div>
-													<div className="text-xs text-vscode-descriptionForeground">
-														{server.tools.length} {t("prompts:mcpRestrictions.servers.toolsCount")}
-														{server.defaultEnabled === false && (
-															<span className="ml-2 text-vscode-editorWarning-foreground">
-																({t("prompts:mcpRestrictions.servers.optIn")})
+												{/* Status Indicator */}
+												<div className="flex items-center gap-2">
+													<div className={`w-3 h-3 rounded-full ${
+														status.enabled 
+															? "bg-green-500" 
+															: "bg-red-500"
+													}`} />
+													<div className="flex flex-col">
+														<div className="font-medium flex items-center gap-2">
+															{server.name}
+															<span className={`text-xs px-2 py-0.5 rounded ${
+																status.enabled 
+																	? "bg-green-600/20 text-green-300" 
+																	: "bg-red-600/20 text-red-300"
+															}`}>
+																{status.enabled ? t("prompts:mcpRestrictions.status.enabled") : t("prompts:mcpRestrictions.status.disabled")}
 															</span>
-														)}
+														</div>
+														<div className="text-xs text-vscode-descriptionForeground">
+															{server.tools.length} {t("prompts:mcpRestrictions.servers.toolsCount")}
+															{server.defaultEnabled === false && (
+																<span className="ml-2 text-vscode-editorWarning-foreground">
+																	({t("prompts:mcpRestrictions.servers.optIn")})
+																</span>
+															)}
+														</div>
+														<div className="text-xs text-vscode-descriptionForeground mt-1">
+															<strong>{t("prompts:mcpRestrictions.status.reason")}:</strong> {status.reasonText}
+														</div>
 													</div>
 												</div>
 											</div>
@@ -281,6 +352,38 @@ export function McpRestrictionsEditor({
 							</div>
 
 							{/* Server Restrictions Summary */}
+							<div className="text-sm text-vscode-descriptionForeground p-3 bg-vscode-editor-background border border-vscode-widget-border rounded">
+								<div className="font-medium mb-2">{t("prompts:mcpRestrictions.servers.currentStatus")}</div>
+								{(() => {
+									const enabledServers = availableServers.filter(server => getServerStatus(server).enabled)
+									const disabledServers = availableServers.filter(server => !getServerStatus(server).enabled)
+									
+									return (
+										<div className="space-y-1">
+											<div className="flex items-center gap-2">
+												<div className="w-2 h-2 rounded-full bg-green-500" />
+												<span>
+													{t("prompts:mcpRestrictions.servers.enabledCount", { 
+														count: enabledServers.length,
+														names: enabledServers.map(s => s.name).join(", ") || "None"
+													})}
+												</span>
+											</div>
+											<div className="flex items-center gap-2">
+												<div className="w-2 h-2 rounded-full bg-red-500" />
+												<span>
+													{t("prompts:mcpRestrictions.servers.disabledCount", { 
+														count: disabledServers.length,
+														names: disabledServers.map(s => s.name).join(", ") || "None"
+													})}
+												</span>
+											</div>
+										</div>
+									)
+								})()}
+							</div>
+							
+							{/* Legacy Server Restrictions Summary */}
 							{(allowedServers.length > 0 || disallowedServers.length > 0) && (
 								<div className="text-sm text-vscode-descriptionForeground p-2 bg-vscode-editor-background border border-vscode-widget-border rounded">
 									{allowedServers.length > 0 && (
