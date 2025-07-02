@@ -12,42 +12,10 @@ import type {
 } from "@roo-code/types"
 
 import { addCustomInstructions } from "../core/prompts/sections/custom-instructions"
+import { matchesGlobPattern, matchesAnyPattern } from "./pattern-matching"
 
 import { EXPERIMENT_IDS } from "./experiments"
 import { TOOL_GROUPS, ALWAYS_AVAILABLE_TOOLS } from "./tools"
-
-// Helper function for glob pattern matching
-function matchesGlobPattern(text: string, pattern: string): boolean {
-	// Convert glob pattern to regex
-	// Escape special regex characters except * and ?
-	let regexPattern = pattern
-		.replace(/[.+^${}()|[\]\\]/g, '\\$&')  // Escape regex special chars
-		.replace(/\*/g, '.*')                   // Convert * to .*
-		.replace(/\?/g, '.')                    // Convert ? to .
-	
-	// Anchor the pattern to match the entire string
-	regexPattern = `^${regexPattern}$`
-	
-	try {
-		const regex = new RegExp(regexPattern)
-		return regex.test(text)
-	} catch (error) {
-		console.error(`Invalid glob pattern: ${pattern}`, error)
-		return false
-	}
-}
-
-// Helper function to check if a name matches any pattern in a list
-function matchesAnyPattern(name: string, patterns: string[]): boolean {
-	return patterns.some(pattern => {
-		// If pattern contains glob characters, use pattern matching
-		if (pattern.includes('*') || pattern.includes('?')) {
-			return matchesGlobPattern(name, pattern)
-		}
-		// Otherwise use exact string matching
-		return name === pattern
-	})
-}
 
 export type Mode = string
 

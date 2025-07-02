@@ -6,7 +6,7 @@ import { McpRestrictions, McpToolRestriction } from "@roo-code/types"
 
 import { Button, StandardTooltip } from "@src/components/ui"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
-import { cn } from "@/lib/utils"
+import { cn, patternMatching } from "@/lib/utils"
 
 export interface McpServer {
 	name: string
@@ -581,11 +581,12 @@ function ServerToolPicker({
 		}
 	}
 
-	// Filter options based on search term
-	const filteredOptions = getOptions().filter(option =>
-		option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-		option.description.toLowerCase().includes(searchTerm.toLowerCase())
-	)
+	// Filter options based on search term with pattern support
+	const filteredOptions = getOptions().filter(option => {
+		const searchValue = value || searchTerm  // Use current input value or search term
+		return patternMatching.matchesPattern(option.label, searchValue) || 
+			   patternMatching.matchesPattern(option.description, searchValue)
+	})
 
 	// Close dropdown when clicking outside
 	useEffect(() => {
