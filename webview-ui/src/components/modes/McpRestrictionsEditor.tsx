@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { VSCodeCheckbox, VSCodeTextArea } from "@vscode/webview-ui-toolkit/react"
-import { ChevronDown, ChevronUp, Info, Plus, X } from "lucide-react"
+import { ChevronDown, ChevronUp, Info, Plus, X, Server, Wrench } from "lucide-react"
 
 import { McpRestrictions, McpToolRestriction } from "@roo-code/types"
 
 import { Button, StandardTooltip } from "@src/components/ui"
 import { useAppTranslation } from "@src/i18n/TranslationContext"
+import { cn } from "@/lib/utils"
 
 export interface McpServer {
 	name: string
@@ -529,6 +530,190 @@ export function McpRestrictionsEditor({
 	)
 }
 
+// ServerToolPicker component for enhanced server/tool selection
+interface ServerToolPickerProps {
+	value: string
+	onSelect: (value: string) => void
+	placeholder: string
+	type: "server" | "tool"
+	availableServers: McpServer[]
+	selectedServerName?: string
+	disabled?: boolean
+}
+
+function ServerToolPicker({ 
+	value, 
+	onSelect, 
+	placeholder, 
+	type, 
+	availableServers, 
+	selectedServerName, 
+	disabled 
+}: ServerToolPickerProps) {
+	const { t } = useAppTranslation()
+	const [isOpen, setIsOpen] = useState(false)
+	const [searchTerm, setSearchTerm] = useState("")
+	const dropdownRef = useRef<HTMLDivElement>(null)
+	const inputRef = useRef<HTMLInputElement>(null)
+
+	// Get available options based on type
+	const getOptions = () => {
+		if (type === "server") {
+			return availableServers.map(server => ({
+				value: server.name,
+				label: server.name,
+				description: `${server.tools.length} tools available`,
+				status: server.status,
+				icon: <Server className="w-4 h-4" />
+			}))
+		} else {
+			// Tool type - find tools for the selected server
+			const server = availableServers.find(s => s.name === selectedServerName)
+			if (!server) return []
+			
+			return server.tools.map(tool => ({
+				value: tool.name,
+				label: tool.name,
+				description: tool.description || "No description available",
+				status: "available" as const,
+				icon: <Wrench className="w-4 h-4" />
+			}))
+		}
+	}
+
+	// Filter options based on search term
+	const filteredOptions = getOptions().filter(option =>
+		option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
+		option.description.toLowerCase().includes(searchTerm.toLowerCase())
+	)
+
+	// Close dropdown when clicking outside
+	useEffect(() => {
+		const handleClickOutside = (event: MouseEvent) => {
+			if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+				setIsOpen(false)
+			}
+		}
+
+		document.addEventListener("mousedown", handleClickOutside)
+		return () => document.removeEventListener("mousedown", handleClickOutside)
+	}, [])
+
+	// Handle option selection
+	const handleSelect = (optionValue: string) => {
+		onSelect(optionValue)
+		setIsOpen(false)
+		setSearchTerm("")
+	}
+
+	// Handle input change - allow manual typing and searching
+	const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+		const inputValue = e.target.value
+		onSelect(inputValue)
+		setSearchTerm(inputValue)
+		setIsOpen(true)
+	}
+
+	// Show placeholder when no value is selected
+	const displayValue = value || ""
+
+	return (
+		<div className="relative" ref={dropdownRef}>
+			<div className="relative">
+				<input
+					ref={inputRef}
+					type="text"
+					value={displayValue}
+					onChange={handleInputChange}
+					onFocus={() => setIsOpen(true)}
+					placeholder={placeholder}
+					disabled={disabled}
+					className={cn(
+						"w-full px-3 py-2 text-sm bg-vscode-input-background border border-vscode-input-border rounded",
+						"focus:outline-none focus:ring-1 focus:ring-vscode-focusBorder",
+						"disabled:opacity-50 disabled:cursor-not-allowed",
+						"pr-8" // Make room for the dropdown arrow
+					)}
+				/>
+				<Button
+					variant="ghost"
+					size="icon"
+					className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6"
+					onClick={() => setIsOpen(!isOpen)}
+					disabled={disabled}>
+					<ChevronDown className={cn("w-3 h-3 transition-transform", { "rotate-180": isOpen })} />
+				</Button>
+			</div>
+
+			{/* Dropdown */}
+			{isOpen && !disabled && (
+				<div className={cn(
+					"absolute z-50 w-full mt-1 bg-vscode-dropdown-background",
+					"border border-vscode-dropdown-border rounded shadow-lg",
+					"max-h-64 overflow-y-auto"
+				)}>
+					{filteredOptions.length === 0 ? (
+						<div className="px-3 py-2 text-sm text-vscode-descriptionForeground">
+							{type === "server" 
+								? t("prompts:mcpRestrictions.picker.noServers")
+								: selectedServerName 
+									? t("prompts:mcpRestrictions.picker.noTools") 
+									: t("prompts:mcpRestrictions.picker.selectServerFirst")
+							}
+						</div>
+					) : (
+						filteredOptions.map((option, index) => (
+							<div
+								key={option.value}
+								className={cn(
+									"flex items-center gap-3 px-3 py-2 cursor-pointer",
+									"hover:bg-vscode-list-hoverBackground",
+									"border-b border-vscode-dropdown-border last:border-b-0",
+									{ "bg-vscode-list-activeSelectionBackground": value === option.value }
+								)}
+								onClick={() => handleSelect(option.value)}>
+								
+								{/* Icon */}
+								<div className="flex-shrink-0 text-vscode-descriptionForeground">
+									{option.icon}
+								</div>
+
+								{/* Content */}
+								<div className="flex-grow min-w-0">
+									<div className="flex items-center gap-2">
+										<span className="font-medium text-vscode-foreground truncate">
+											{option.label}
+										</span>
+										{type === "server" && option.status && (
+											<div className={cn("w-2 h-2 rounded-full flex-shrink-0", {
+												"bg-green-500": option.status === "connected",
+												"bg-red-500": option.status === "error",
+												"bg-yellow-500": option.status === "disconnected"
+											})} />
+										)}
+									</div>
+									<div className="text-xs text-vscode-descriptionForeground truncate">
+										{option.description}
+									</div>
+								</div>
+
+								{/* Selection indicator */}
+								{value === option.value && (
+									<div className="flex-shrink-0 text-vscode-foreground">
+										<svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+											<path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+										</svg>
+									</div>
+								)}
+							</div>
+						))
+					)}
+				</div>
+			)}
+		</div>
+	)
+}
+
 // Helper component for tool restriction rows
 interface ToolRestrictionRowProps {
 	tool: McpToolRestriction
@@ -541,54 +726,47 @@ interface ToolRestrictionRowProps {
 function ToolRestrictionRow({ tool, availableServers, onUpdate, onRemove, disabled }: ToolRestrictionRowProps) {
 	const { t } = useAppTranslation()
 
-	// Get tools for selected server
-	const selectedServer = availableServers.find((s) => s.name === tool.serverName)
-	const availableTools = selectedServer?.tools ?? []
-
 	return (
-		<div className="flex items-center gap-2 p-2 border border-vscode-widget-border rounded">
-			{/* Server Name Input */}
+		<div className="flex items-center gap-2 p-3 border border-vscode-widget-border rounded bg-vscode-editor-background">
+			{/* Server Name Picker */}
 			<div className="flex-1">
-				<input
-					type="text"
+				<div className="text-xs text-vscode-descriptionForeground mb-1">
+					{t("prompts:mcpRestrictions.tools.serverName")}
+				</div>
+				<ServerToolPicker
 					value={tool.serverName}
-					onChange={(e) => onUpdate("serverName", e.target.value)}
+					onSelect={(value) => onUpdate("serverName", value)}
 					placeholder={t("prompts:mcpRestrictions.tools.serverNamePlaceholder")}
+					type="server"
+					availableServers={availableServers}
 					disabled={disabled}
-					className="w-full px-2 py-1 text-sm bg-vscode-input-background border border-vscode-input-border rounded"
-					list={`servers-${tool.serverName}-${tool.toolName}`}
 				/>
-				<datalist id={`servers-${tool.serverName}-${tool.toolName}`}>
-					{availableServers.map((server) => (
-						<option key={server.name} value={server.name} />
-					))}
-				</datalist>
 			</div>
 
-			{/* Tool Name Input */}
+			{/* Tool Name Picker */}
 			<div className="flex-1">
-				<input
-					type="text"
+				<div className="text-xs text-vscode-descriptionForeground mb-1">
+					{t("prompts:mcpRestrictions.tools.toolName")}
+				</div>
+				<ServerToolPicker
 					value={tool.toolName}
-					onChange={(e) => onUpdate("toolName", e.target.value)}
+					onSelect={(value) => onUpdate("toolName", value)}
 					placeholder={t("prompts:mcpRestrictions.tools.toolNamePlaceholder")}
+					type="tool"
+					availableServers={availableServers}
+					selectedServerName={tool.serverName}
 					disabled={disabled}
-					className="w-full px-2 py-1 text-sm bg-vscode-input-background border border-vscode-input-border rounded"
-					list={`tools-${tool.serverName}-${tool.toolName}`}
 				/>
-				<datalist id={`tools-${tool.serverName}-${tool.toolName}`}>
-					{availableTools.map((toolItem) => (
-						<option key={toolItem.name} value={toolItem.name} />
-					))}
-				</datalist>
 			</div>
 
 			{/* Remove Button */}
-			<StandardTooltip content={t("prompts:mcpRestrictions.tools.remove")}>
-				<Button variant="ghost" size="icon" onClick={onRemove} disabled={disabled}>
-					<X className="w-4 h-4" />
-				</Button>
-			</StandardTooltip>
+			<div className="flex-shrink-0 pt-4">
+				<StandardTooltip content={t("prompts:mcpRestrictions.tools.remove")}>
+					<Button variant="ghost" size="icon" onClick={onRemove} disabled={disabled}>
+						<X className="w-4 h-4" />
+					</Button>
+				</StandardTooltip>
+			</div>
 		</div>
 	)
 }

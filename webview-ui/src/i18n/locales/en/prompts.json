@@ -197,6 +197,8 @@
 			"addDisallowed": "Add Blocked",
 			"noAllowedTools": "All tools are allowed (unless specifically blocked below)",
 			"noDisallowedTools": "No tools are specifically blocked",
+			"serverName": "Server",
+			"toolName": "Tool",
 			"serverNamePlaceholder": "Server name or pattern (e.g., docs-*, *-admin)",
 			"toolNamePlaceholder": "Tool name or pattern (e.g., get_*, delete_*)",
 			"remove": "Remove restriction",
@@ -220,6 +222,11 @@
 			"notInAllowList": "Not included in allowed servers list",
 			"defaultEnabled": "Enabled by default server configuration",
 			"defaultDisabled": "Disabled by default server configuration (opt-in required)"
+		},
+		"picker": {
+			"noServers": "No servers available",
+			"noTools": "No tools available for this server",
+			"selectServerFirst": "Please select a server first"
 		}
 	}
 }
